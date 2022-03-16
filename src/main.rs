@@ -7,24 +7,15 @@ use std::thread::JoinHandle;
 use web_server::ThreadPool;
 
 fn handle_connection(mut stream: TcpStream) {
-    // // Wrap the stream in a BufReader, so we can use the BufRead methods
-    // let mut reader: BufReader<TcpStream> = BufReader::new(stream);
-    // // Read current current data in the TcpStream
-    // let received: Vec<u8> = reader.fill_buf().unwrap().to_vec();
-    // // Mark the bytes read as consumed so the buffer will not return them in a subsequent read
-    // reader.consume(received.len());
-    // println!("Result {:?}", String::from_utf8(received).unwrap());
-
     let mut buffer = [0; 1024];
     stream.read(&mut buffer).unwrap();
-    println!("Request: {}", String::from_utf8_lossy(&buffer[..]));
 
     let get = b"GET / HTTP/1.1\r\n";
 
     let (status_line, filename) = if buffer.starts_with(get) {
-        ("HTTP/1.1 200 OK", "hello.html")
+        ("HTTP/1.1 200 OK", "src/hello.html")
     } else {
-        ("HTTP/1.1 404 NOT FOUND", "404.html")
+        ("HTTP/1.1 404 NOT FOUND", "src/404.html")
     };
 
     let contents = fs::read_to_string(filename).unwrap();
@@ -48,9 +39,7 @@ fn listen_connections() {
         match stream {
             Ok(stream) => {
                 println!("connection accepted");
-                let handler: JoinHandle<()> = thread::spawn(|| {
-                    handle_connection(stream);
-                });
+                pool.execute(|| handle_connection(stream))
             }
             Err(e) => println!("connection failed: {:?}", e),
         }
@@ -58,5 +47,4 @@ fn listen_connections() {
 }
 fn main() {
     listen_connections();
-    println!("Hello, world!");
 }
